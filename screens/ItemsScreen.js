@@ -1,49 +1,66 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, Alert, ActivityIndicator } from 'react-native';
-import { getItemById, deleteItem } from '../services/api';
+import React, { useState, useCallback } from 'react';
+import { View, FlatList, StyleSheet, ActivityIndicator, Button, Text } from 'react-native';
+import { getItems } from '../services/api';
+import ItemCard from '../components/ItemCard';
+import { useFocusEffect } from '@react-navigation/native';
 
-export default function DetailScreen({ route, navigation }) {
-  const { id } = route.params;
-  const [item, setItem] = useState(null);
+export default function ItemsScreen({ navigation }) {
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getItemById(id).then(data => {
-      setItem(data);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const data = await getItems();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setItems([]);
+    } finally {
       setLoading(false);
-    });
-  }, [id]);
-
-  const confirmDelete = () => {
-    Alert.alert("Confirmar", "¿Seguro que deseas eliminar este ítem?", [
-      { text: "Cancelar" },
-      { text: "Eliminar", style: "destructive", onPress: async () => {
-          await deleteItem(id);
-          navigation.goBack(); // Regresa tras eliminar
-      }}
-    ]);
+    }
   };
 
-  if (loading) return <ActivityIndicator size="large" color="#38bdf8" />;
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
+  if (loading) return <ActivityIndicator size="large" color="#38bdf8" style={styles.loader} />;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{item.name}</Text>
-      <Text style={styles.description}>{item.description}</Text>
+      <Button title="Recargar Lista" onPress={fetchData} color="#38bdf8" />
       
-      <View style={styles.buttonContainer}>
-        <Button title="Eliminar" color="#ef4444" onPress={confirmDelete} />
-        <View style={{ marginTop: 10 }}>
-          <Button title="Volver" onPress={() => navigation.goBack()} />
-        </View>
-      </View>
+      {items.length > 0 ? (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item?.id ? item.id.toString() : Math.random().toString()}
+          renderItem={({ item }) => {
+            if (!item) return null;
+            
+            // INTENTA ESTOS NOMBRES: Muchos proyectos Spring Boot usan 'nombre' o 'title'
+            const titulo = item.name || item.nombre || item.title || "Sin título";
+            const descripcion = item.description || item.descripcion || "Sin descripción";
+
+            return (
+              <ItemCard 
+                title={titulo} 
+                description={descripcion} 
+                onPress={() => navigation.navigate('Detail', { id: item.id })}
+              />
+            );
+          }}
+        />
+      ) : (
+        <Text style={styles.emptyText}>No hay elementos para mostrar</Text>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#0f172a' },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
-  description: { fontSize: 16, color: '#94a3b8', marginBottom: 20 },
-  buttonContainer: { marginTop: 20 }
+const styles = StyleSheet.create({ 
+  container: { flex: 1, backgroundColor: '#0f172a', padding: 20 },
+  loader: { flex: 1, justifyContent: 'center', backgroundColor: '#0f172a' },
+  emptyText: { color: '#fff', textAlign: 'center', marginTop: 20, fontSize: 16 }
 });
