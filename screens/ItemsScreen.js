@@ -1,36 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import { getItems } from '../services/api';
-import ItemCard from '../components/ItemCard';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Button, Alert, ActivityIndicator } from 'react-native';
+import { getItemById, deleteItem } from '../services/api';
 
-export default function ItemsScreen({ navigation }) {
-  const [items, setItems] = useState([]);
+export default function DetailScreen({ route, navigation }) {
+  const { id } = route.params;
+  const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getItems().then(data => {
-      setItems(data);
+    getItemById(id).then(data => {
+      setItem(data);
       setLoading(false);
     });
-  }, []);
+  }, [id]);
+
+  const confirmDelete = () => {
+    Alert.alert("Confirmar", "¿Seguro que deseas eliminar este ítem?", [
+      { text: "Cancelar" },
+      { text: "Eliminar", style: "destructive", onPress: async () => {
+          await deleteItem(id);
+          navigation.goBack(); // Regresa tras eliminar
+      }}
+    ]);
+  };
 
   if (loading) return <ActivityIndicator size="large" color="#38bdf8" />;
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <ItemCard 
-            title={item.name} 
-            description={item.description} 
-            onPress={() => navigation.navigate('Detail', { id: item.id })}
-          />
-        )}
-      />
+      <Text style={styles.title}>{item.name}</Text>
+      <Text style={styles.description}>{item.description}</Text>
+      
+      <View style={styles.buttonContainer}>
+        <Button title="Eliminar" color="#ef4444" onPress={confirmDelete} />
+        <View style={{ marginTop: 10 }}>
+          <Button title="Volver" onPress={() => navigation.goBack()} />
+        </View>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#0f172a', padding: 20 } });
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#0f172a' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
+  description: { fontSize: 16, color: '#94a3b8', marginBottom: 20 },
+  buttonContainer: { marginTop: 20 }
+});
