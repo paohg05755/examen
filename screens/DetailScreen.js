@@ -9,14 +9,9 @@ export default function DetailScreen({ route, navigation }) {
 
   useEffect(() => {
     const loadDetail = async () => {
-      try {
-        const data = await getItemById(id);
-        setItem(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+      const data = await getItemById(id);
+      setItem(data);
+      setLoading(false);
     };
     loadDetail();
   }, [id]);
@@ -28,21 +23,16 @@ export default function DetailScreen({ route, navigation }) {
       <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{item?.title}</Text>
       <Text style={{ fontSize: 18, marginTop: 10 }}>{item?.description}</Text>
       
-      {/* Aquí es donde el botón debe vivir, dentro del return */}
       <View style={{ marginTop: 20 }}>
-        <Button 
-          title="Eliminar este ítem" 
-          color="red"
-          onPress={() => {
-            Alert.alert("Confirmar", "¿Seguro que quieres borrarlo?", [
+        <Button title="Editar este ítem" onPress={() => navigation.navigate('Form', { item })} />
+        <View style={{ marginTop: 10 }}>
+          <Button title="Eliminar este ítem" color="red" onPress={() => {
+            Alert.alert("Confirmar", "¿Seguro?", [
               { text: "Cancelar" },
-              { text: "Sí, borrar", onPress: async () => {
-                  await deleteItem(id);
-                  navigation.goBack();
-              }}
+              { text: "Sí", onPress: async () => { await deleteItem(id); navigation.goBack(); }}
             ]);
-          }} 
-        />
+          }} />
+        </View>
       </View>
     </View>
   );
