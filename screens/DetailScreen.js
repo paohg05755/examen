@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Button, Alert } from 'react-native';
+import { View, Text, StyleSheet, Button, Alert, ActivityIndicator } from 'react-native';
 import { getItemById, deleteItem } from '../services/api';
 
 export default function DetailScreen({ route, navigation }) {
@@ -8,32 +8,42 @@ export default function DetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadDetail = async () => {
-      const data = await getItemById(id);
+    getItemById(id).then(data => {
       setItem(data);
       setLoading(false);
-    };
-    loadDetail();
+    });
   }, [id]);
 
-  if (loading) return <ActivityIndicator size="large" />;
+  const confirmDelete = () => {
+    Alert.alert("Confirmar", "¿Seguro que deseas eliminar este ítem?", [
+      { text: "Cancelar" },
+      { text: "Eliminar", style: "destructive", onPress: async () => {
+          await deleteItem(id);
+          navigation.goBack(); // Regresa tras eliminar
+      }}
+    ]);
+  };
+
+  if (loading) return <ActivityIndicator size="large" color="#38bdf8" />;
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{item?.title}</Text>
-      <Text style={{ fontSize: 18, marginTop: 10 }}>{item?.description}</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>{item.name}</Text>
+      <Text style={styles.description}>{item.description}</Text>
       
-      <View style={{ marginTop: 20 }}>
-        <Button title="Editar este ítem" onPress={() => navigation.navigate('Form', { item })} />
+      <View style={styles.buttonContainer}>
+        <Button title="Eliminar" color="#ef4444" onPress={confirmDelete} />
         <View style={{ marginTop: 10 }}>
-          <Button title="Eliminar este ítem" color="red" onPress={() => {
-            Alert.alert("Confirmar", "¿Seguro?", [
-              { text: "Cancelar" },
-              { text: "Sí", onPress: async () => { await deleteItem(id); navigation.goBack(); }}
-            ]);
-          }} />
+          <Button title="Volver" onPress={() => navigation.goBack()} />
         </View>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#0f172a' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
+  description: { fontSize: 16, color: '#94a3b8', marginBottom: 20 },
+  buttonContainer: { marginTop: 20 }
+});
